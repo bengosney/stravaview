@@ -9,7 +9,7 @@ class Settings:
         'api': {
             'client_id': None,
             'client_secret': None,
-        }
+        },
         'token': None,
     }
     
