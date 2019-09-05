@@ -47,7 +47,7 @@ client = StravaIO(access_token=s.settings['token']['access_token'])
 athlete = client.get_logged_in_athlete()
 athlete.store_locally()
 
-list_activities = client.get_logged_in_athlete_activities(after='last week')
+list_activities = client.get_logged_in_athlete_activities(after='1 september')
 
 # Obvious use - store all activities locally
 for a in list_activities:    
@@ -58,10 +58,14 @@ for a in list_activities:
     #print(line)
     points = polyline.decode(line)
     #pprint(points)
-    break
+    if len(points) > 0:
+        break
 
-lats = [p[0] for p in points]
-lngs = [p[1] for p in points]
+LAT_INDEX = 0
+LNG_INDEX = 1
+
+lats = [p[LAT_INDEX] for p in points]
+lngs = [p[LNG_INDEX] for p in points]
 
 minlat = min(lats)
 maxlat = max(lats)
@@ -81,8 +85,8 @@ if minlng < 0:
 else:
     adjlng = -minlng
     
-width = 300
-height = 300
+width = 500
+height = 500
 
 def scale(OldValue, OldMin, OldMax, NewMin, NewMax):
     OldRange = (OldMax - OldMin)  
@@ -90,15 +94,15 @@ def scale(OldValue, OldMin, OldMax, NewMin, NewMax):
 
     return (((OldValue - OldMin) * NewRange) / OldRange) + NewMin
 
+
 with cairo.SVGSurface("plots/route.svg", width, height) as surface:
     context = cairo.Context(surface)
     context.set_source_rgb(0.3, 0.2, 0.5)
     context.set_line_width(width / 100)
-
     
     for i, p in enumerate(points):
-        x = scale(p[0], minlat, maxlat, 0, width)
-        y = scale(p[1], minlng, maxlng, 0, height)
+        y = height - scale(p[LAT_INDEX], minlat, maxlat, 0, width)
+        x = scale(p[LNG_INDEX], minlng, maxlng, 0, height)
 
         if i == 0:
             context.move_to(x, y)
@@ -108,3 +112,4 @@ with cairo.SVGSurface("plots/route.svg", width, height) as surface:
 
     context.stroke()
     
+print(activity)
