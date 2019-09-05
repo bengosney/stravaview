@@ -1,6 +1,7 @@
 import yaml
 from stravaio import strava_oauth2, StravaIO
 import polyline
+import cairo
 
 from pprint import pprint
 
@@ -36,12 +37,13 @@ STRAVA_CLIENT_ID = s.settings['api']['client_id']
 STRAVA_CLIENT_SECRET = s.settings['api']['client_secret']
 
 
-if s.settings['token'] is None:
+if 'token' not in s.settings or s.settings['token'] is None:
     data = strava_oauth2(client_id=STRAVA_CLIENT_ID, client_secret=STRAVA_CLIENT_SECRET)
     s.settings['token'] = data
     s.save()
 
-client = StravaIO(access_token=s.settings['token']['access_token'])
+
+client = StravaIO(access_token=s.settings['token']['access_token'])    
 athlete = client.get_logged_in_athlete()
 athlete.store_locally()
 
@@ -51,9 +53,58 @@ list_activities = client.get_logged_in_athlete_activities(after='last week')
 for a in list_activities:    
     activity = client.get_activity_by_id(a.id)
     activity.store_locally()
-    pprint(activity.to_dict())
+    #pprint(activity.to_dict())
     line = activity.to_dict()['map']['polyline']
-    print(line)
+    #print(line)
     points = polyline.decode(line)
-    pprint(points)
+    #pprint(points)
     break
+
+lats = [p[0] for p in points]
+lngs = [p[1] for p in points]
+
+minlat = min(lats)
+maxlat = max(lats)
+
+minlng = min(lngs)
+maxlng = max(lngs)
+
+print(lngs, f"\n\n{maxlng} - {minlng}")
+
+if minlat < 0:
+    adjlat = abs(minlat)
+else:
+    adjlat = -minlat
+
+if minlng < 0:
+    adjlng = abs(minlng)
+else:
+    adjlng = -minlng
+    
+width = 300
+height = 300
+
+def scale(OldValue, OldMin, OldMax, NewMin, NewMax):
+    OldRange = (OldMax - OldMin)  
+    NewRange = (NewMax - NewMin)
+
+    return (((OldValue - OldMin) * NewRange) / OldRange) + NewMin
+
+with cairo.SVGSurface("plots/route.svg", width, height) as surface:
+    context = cairo.Context(surface)
+    context.set_source_rgb(0.3, 0.2, 0.5)
+    context.set_line_width(width / 100)
+
+    
+    for i, p in enumerate(points):
+        x = scale(p[0], minlat, maxlat, 0, width)
+        y = scale(p[1], minlng, maxlng, 0, height)
+
+        if i == 0:
+            context.move_to(x, y)
+        
+        print(x, y)
+        context.line_to(x, y)
+
+    context.stroke()
+    
