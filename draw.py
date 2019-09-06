@@ -2,6 +2,7 @@ import yaml
 from stravaio import strava_oauth2, StravaIO
 import polyline
 import cairo
+from route import Route
 
 from pprint import pprint
 
@@ -61,32 +62,39 @@ for a in list_activities:
     if len(points) > 0:
         break
 
-LAT_INDEX = 0
-LNG_INDEX = 1
 
-lats = [p[LAT_INDEX] for p in points]
-lngs = [p[LNG_INDEX] for p in points]
+r = Route(line)
+print(r)
+r.normalize()
+print(r)
+# LAT_INDEX = 0
+# LNG_INDEX = 1
 
-minlat = min(lats)
-maxlat = max(lats)
+# lats = [p[LAT_INDEX] for p in points]
+# lngs = [p[LNG_INDEX] for p in points]
 
-minlng = min(lngs)
-maxlng = max(lngs)
+# minlat = min(lats)
+# maxlat = max(lats)
 
-print(lngs, f"\n\n{maxlng} - {minlng}")
+# minlng = min(lngs)
+# maxlng = max(lngs)
 
-if minlat < 0:
-    adjlat = abs(minlat)
-else:
-    adjlat = -minlat
+# print(lngs, f"\n\n{maxlng} - {minlng}")
 
-if minlng < 0:
-    adjlng = abs(minlng)
-else:
-    adjlng = -minlng
+# if minlat < 0:
+#     adjlat = abs(minlat)
+# else:
+#     adjlat = 0
+
+# if minlng < 0:
+#     adjlng = abs(minlng)
+# else:
+#     adjlng = 0
     
 width = 500
 height = 500
+
+r.scaleWithin(width, height)
 
 def scale(OldValue, OldMin, OldMax, NewMin, NewMax):
     OldRange = (OldMax - OldMin)  
@@ -98,16 +106,15 @@ def scale(OldValue, OldMin, OldMax, NewMin, NewMax):
 with cairo.SVGSurface("plots/route.svg", width, height) as surface:
     context = cairo.Context(surface)
     context.set_source_rgb(0.3, 0.2, 0.5)
-    context.set_line_width(width / 100)
+    context.set_line_width(width / 200)
     
-    for i, p in enumerate(points):
-        y = height - scale(p[LAT_INDEX], minlat, maxlat, 0, width)
-        x = scale(p[LNG_INDEX], minlng, maxlng, 0, height)
+    for i, p in enumerate(r.points):
+        y = height - p.x
+        x = p.y
 
         if i == 0:
             context.move_to(x, y)
         
-        print(x, y)
         context.line_to(x, y)
 
     context.stroke()
